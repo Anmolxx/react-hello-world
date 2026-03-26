@@ -24,7 +24,7 @@ pipeline {
             steps {
                 echo "🔨 Building Docker image: ${DOCKER_IMAGE}"
                 sh '''
-                docker build -t ${DOCKER_IMAGE} .
+                docker build -t ${DOCKER_IMAGE} -f app/Dockerfile .
                 echo "✓ Docker image built successfully"
                 docker images | grep react-app
                 '''
