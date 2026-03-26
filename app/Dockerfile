@@ -20,9 +20,6 @@ RUN npm run build
 # Stage 2: Production stage
 FROM nginx:alpine
 
-# Remove default nginx configuration
-RUN rm /etc/nginx/conf.d/default.conf
-
 # Copy built files from builder stage
 COPY --from=builder /app/build /usr/share/nginx/html
 
