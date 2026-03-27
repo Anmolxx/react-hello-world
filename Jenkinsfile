@@ -38,6 +38,7 @@ pipeline {
                 echo "☸️ Deploying to Kubernetes..."
 
                 sh '''
+                ls
                 kubectl apply -f k8s/namespace.yaml || true
                 kubectl apply -f k8s/deployment.yaml
                 kubectl apply -f k8s/service.yaml
