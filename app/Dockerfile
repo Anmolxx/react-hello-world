@@ -1,3 +1,4 @@
+
 # Multi-stage Docker build for React application
 # Stage 1: Build stage
 FROM node:18-alpine AS builder
