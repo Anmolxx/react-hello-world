@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         APP_NAME = "react-app"
-        IMAGE_NAME = "anmoldeepkaur1103/react-app:latest"
+        DOCKER_IMAGE = "docker.io/anmoldeepkaur1103/react-app"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -19,16 +20,34 @@ pipeline {
             steps {
                 echo "🔨 Building Docker image..."
                 sh '''
-                docker build -t ${IMAGE_NAME} .
+                docker build -t $DOCKER_IMAGE:$IMAGE_TAG .
                 '''
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Docker Login & Push') {
             steps {
-                echo "🚀 Pushing image to Docker Hub..."
+                echo "🚀 Logging in & pushing to Docker Hub..."
+
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push $DOCKER_IMAGE:$IMAGE_TAG
+                    '''
+                }
+            }
+        }
+
+        stage('Update Kubernetes Manifest') {
+            steps {
+                echo "📝 Updating deployment image..."
+
                 sh '''
-                docker push ${IMAGE_NAME}
+                sed -i "s|image: .*|image: $DOCKER_IMAGE:$IMAGE_TAG|g" k8s/deployment.yaml
                 '''
             }
         }
@@ -38,23 +57,34 @@ pipeline {
                 echo "☸️ Deploying to Kubernetes..."
 
                 sh '''
-                ls
                 kubectl apply -f k8s/namespace.yaml || true
                 kubectl apply -f k8s/deployment.yaml
                 kubectl apply -f k8s/service.yaml
                 kubectl apply -f k8s/fluent-bit.yaml
 
-                kubectl rollout restart deployment react-app-deployment -n react-app
+                kubectl rollout status deployment react-app-deployment -n react-app
                 '''
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                echo "🔍 Verifying pods..."
+                echo "🔍 Verifying deployment..."
+
                 sh '''
-                kubectl get pods -n react-app
+                kubectl get pods -n react-app -o wide
                 kubectl get svc -n react-app
+                '''
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                echo "🌐 Testing application..."
+
+                sh '''
+                sleep 10
+                curl -f http://localhost:30007 || exit 1
                 '''
             }
         }
@@ -64,7 +94,7 @@ pipeline {
                 sh '''
                 echo ""
                 echo "=========================================="
-                echo "✅ KUBERNETES DEPLOYMENT SUCCESSFUL"
+                echo "✅ CI/CD PIPELINE EXECUTED SUCCESSFULLY"
                 echo "=========================================="
                 '''
             }
@@ -73,12 +103,20 @@ pipeline {
 
     post {
         failure {
-            echo "❌ Pipeline failed"
+            echo "❌ Pipeline failed - Debugging info:"
+
             sh '''
+            echo "---- Pods ----"
             kubectl get pods -A || true
+
+            echo "---- Describe ----"
+            kubectl describe pods -n react-app || true
+
+            echo "---- Docker ----"
             docker ps -a
             '''
         }
+
         success {
             echo "✅ Pipeline succeeded"
         }
