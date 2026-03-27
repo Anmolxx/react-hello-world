@@ -3,66 +3,57 @@ pipeline {
 
     environment {
         APP_NAME = "react-app"
-        DOCKER_IMAGE = "react-app:latest"
-        PORT = "3000"
+        IMAGE_NAME = "anmoldeepkaur1103/react-app:latest"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                echo " Checking out code..."
+                echo "📥 Checking out code..."
                 git branch: 'main', url: 'https://github.com/Anmolxx/react-hello-world.git'
-                echo "✓ Checkout complete"
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo " Building Docker image..."
+                echo "🔨 Building Docker image..."
                 sh '''
-                docker build -t ${DOCKER_IMAGE} .
-                docker images | grep react-app
-                '''
-                echo "✓ Docker image built"
-            }
-        }
-
-        stage('Stop Old Container') {
-            steps {
-                echo " Stopping old container (if exists)..."
-                sh '''
-                docker stop ${APP_NAME} || true
-                docker rm ${APP_NAME} || true
+                docker build -t ${IMAGE_NAME} .
                 '''
             }
         }
 
-        stage('Run Container') {
+        stage('Push to Docker Hub') {
             steps {
-                echo "🐳 Starting new container..."
+                echo "🚀 Pushing image to Docker Hub..."
                 sh '''
-                docker run -d \
-                    --name ${APP_NAME} \
-                    -p ${PORT}:80 \
-                    --restart=unless-stopped \
-                    ${DOCKER_IMAGE}
+                docker push ${IMAGE_NAME}
                 '''
-                echo "✓ Container started"
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo "☸️ Deploying to Kubernetes..."
+
+                sh '''
+                kubectl apply -f k8s/namespace.yaml || true
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+                kubectl apply -f k8s/fluent-bit.yaml
+
+                kubectl rollout restart deployment react-app-deployment -n react-app
+                '''
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                echo "🔍 Verifying deployment..."
+                echo "🔍 Verifying pods..."
                 sh '''
-                sleep 5
-
-                # Try hitting app (don’t fail pipeline if not reachable from Jenkins)
-                curl -sf http://localhost:${PORT} || true
-
-                echo "Container status:"
-                docker ps | grep ${APP_NAME}
+                kubectl get pods -n react-app
+                kubectl get svc -n react-app
                 '''
             }
         }
@@ -72,15 +63,7 @@ pipeline {
                 sh '''
                 echo ""
                 echo "=========================================="
-                echo " DEPLOYMENT SUCCESSFUL"
-                echo "=========================================="
-
-                HOST=$(hostname -I | awk '{print $1}')
-
-                echo "App Name: ${APP_NAME}"
-                echo "Docker Image: ${DOCKER_IMAGE}"
-                echo "URL: http://${HOST}:${PORT}"
-
+                echo "✅ KUBERNETES DEPLOYMENT SUCCESSFUL"
                 echo "=========================================="
                 '''
             }
@@ -89,14 +72,14 @@ pipeline {
 
     post {
         failure {
-            echo " Pipeline failed"
+            echo "❌ Pipeline failed"
             sh '''
+            kubectl get pods -A || true
             docker ps -a
-            docker logs ${APP_NAME} || true
             '''
         }
         success {
-            echo " Pipeline succeeded"
+            echo "✅ Pipeline succeeded"
         }
     }
 }
