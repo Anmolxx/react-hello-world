@@ -12,7 +12,6 @@ services:
 
     volumes:
       - /var/lib/docker/volumes/jenkins_jenkins_home/_data:/var/jenkins_home
-      
       - /var/run/docker.sock:/var/run/docker.sock
 
     environment:
@@ -26,10 +25,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-
-volumes:
-  jenkins_jenkins_home:
-    external: true
 
 networks:
   jenkins_net:
