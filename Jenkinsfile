@@ -20,7 +20,7 @@ pipeline {
             steps {
                 echo "🔨 Building Docker image..."
                 sh '''
-                docker build -t $DOCKER_IMAGE:$IMAGE_TAG .
+                docker build -t ${IMAGE_NAME} ./app
                 '''
             }
         }
