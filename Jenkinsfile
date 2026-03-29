@@ -20,7 +20,7 @@ pipeline {
             steps {
                 echo "🔨 Building Docker image..."
                 sh '''
-                docker build -t ${IMAGE_NAME} ./app
+                docker build -t docker.io/anmoldeepkaur1103/react-app:${BUILD_NUMBER} ./app
                 '''
             }
         }
