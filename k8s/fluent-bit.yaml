@@ -67,7 +67,7 @@ spec:
 
         volumeMounts:
         - name: config
-          mountPath: /fluent-bit/etc/fluent-bit.conf
+          mountPath: /fluent-bit/etc/custom.conf
           subPath: fluent-bit.conf
 
         - name: varlibdockercontainers
