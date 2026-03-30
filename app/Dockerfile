@@ -1,46 +1,32 @@
-# FROM node:18-alpine AS builder
+FROM node:18-alpine AS builder
 
-# WORKDIR /app
+WORKDIR /app
 
-# ENV NODE_OPTIONS=--openssl-legacy-provider
-# # Copy package.json and package-lock.json
-# COPY package*.json ./
+ENV NODE_OPTIONS=--openssl-legacy-provider
+# Copy package.json and package-lock.json
+COPY package*.json ./
 
-# # Install dependencies
-# RUN npm install
+# Install dependencies
+RUN npm install
 
-# # Copy application code
-# COPY . .
+# Copy application code
+COPY . .
 
-# # Build the React application
-# RUN npm run build
+# Build the React application
+RUN npm run build
 
-# # Stage 2: Production stage
-# FROM nginx:alpine
-
-# # Copy built files from builder stage
-# COPY --from=builder /app/build /usr/share/nginx/html
-
-# # Expose port 80
-# EXPOSE 80
-
-# # Health check
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-#     CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
-
-# # Start nginx
-# CMD ["nginx", "-g", "daemon off;"]
-
+# Stage 2: Production stage
 FROM nginx:alpine
 
-# Remove default config (IMPORTANT)
-RUN rm /etc/nginx/conf.d/default.conf
-
-# Add simple working config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
+# Copy built files from builder stage
 COPY --from=builder /app/build /usr/share/nginx/html
 
+# Expose port 80
 EXPOSE 80
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
+
+# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
