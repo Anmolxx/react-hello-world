@@ -47,6 +47,9 @@ spec:
         - name: http
           containerPort: 80
 
+        securityContext:
+          runAsUser: 0
+
         # Resources (kept)
         resources:
           requests:
