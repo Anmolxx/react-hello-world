@@ -27,74 +27,53 @@ spec:
         version: v1
 
     spec:
-      # Spread pods across nodes (good practice)
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                labelSelector:
-                  matchLabels:
-                    app: react-app
-                topologyKey: kubernetes.io/hostname
-
       containers:
-      - name: react-app
-        image: docker.io/anmoldeepkaur1103/react-app:latest
-        imagePullPolicy: Always
+        - name: react-app
+          image: docker.io/anmoldeepkaur1103/react-app:latest
+          imagePullPolicy: Always
 
-        ports:
-        - name: http
-          containerPort: 80
+          ports:
+            - containerPort: 80
 
-        securityContext:
-          runAsUser: 0
+          # ✅ FIXED SECURITY CONTEXT (single, correct)
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
 
-        # Resources (kept)
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
+          # ✅ Resource limits
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
 
-        # Liveness probe
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 20
-          periodSeconds: 10
+          # ✅ Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 20
+            periodSeconds: 10
 
-        # Readiness probe
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
+          # ✅ Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
 
-        # 🔥 FIXED SECURITY CONTEXT
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false   # 🔥 IMPORTANT FIX
-          capabilities:
-            drop:
-              - ALL
-
-        # Minimal required writable dirs for nginx
-        volumeMounts:
-        - name: tmp
-          mountPath: /tmp
-
-      # Pod-level security
-      securityContext:
-        fsGroup: 101
+          # ✅ Required writable temp dir for nginx
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
 
       volumes:
-      - name: tmp
-        emptyDir: {}
+        - name: tmp
+          emptyDir: {}
 
       restartPolicy: Always
       dnsPolicy: ClusterFirst
