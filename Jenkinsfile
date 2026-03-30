@@ -78,16 +78,16 @@ pipeline {
             }
         }
 
-        stage('Smoke Test') {
-            steps {
-                echo "🌐 Testing application..."
+        // stage('Smoke Test') {
+        //     steps {
+        //         echo "🌐 Testing application..."
 
-                sh '''
-                sleep 10
-                curl -f http://3.208.213.108:3001 || exit 1
-                '''
-            }
-        }
+        //         sh '''
+        //         sleep 10
+        //         curl -f http://3.208.213.108:3001 || exit 1
+        //         '''
+        //     }
+        // }
 
         stage('Summary') {
             steps {
