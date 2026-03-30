@@ -63,7 +63,7 @@ spec:
         command: ["/fluent-bit/bin/fluent-bit"]
         args:
           - -c
-          - /fluent-bit/etc/fluent-bit.conf
+          - /fluent-bit/etc/custom.conf
 
         volumeMounts:
         - name: config
