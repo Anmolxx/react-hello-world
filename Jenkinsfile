@@ -84,7 +84,7 @@ pipeline {
 
                 sh '''
                 sleep 10
-                curl -f http://localhost:30007 || exit 1
+                curl -f http://3.208.213.108:30007 || exit 1
                 '''
             }
         }
