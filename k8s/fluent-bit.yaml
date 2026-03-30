@@ -19,22 +19,41 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush        1
-        Log_Level    info
+        Flush         1
+        Log_Level     info
+        Daemon        off
+        storage.path  /var/log/flb-storage
 
     [INPUT]
         Name              tail
-        Path              /var/lib/docker/containers/*/*.log
+        Path              /var/log/containers/*.log
         Parser            docker
         Tag               kube.*
+        Refresh_Interval  5
+        Mem_Buf_Limit     50MB
+        Skip_Long_Lines   On
+
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_Tag_Prefix     kube.var.log.containers.
+        Merge_Log           On
+        Keep_Log            Off
 
     [OUTPUT]
-        Name cloudwatch_logs
-        Match   *
-        region  us-east-1
-        log_group_name  react-app-logs
-        log_stream_prefix fluent-bit-
-        auto_create_group true
+        Name                cloudwatch_logs
+        Match               kube.*
+        region              us-east-1
+        log_group_name      react-app-logs
+        log_stream_prefix   fluentbit-
+        auto_create_group   true
+
+  parsers.conf: |
+    [PARSER]
+        Name        docker
+        Format      json
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
 
 ---
 apiVersion: apps/v1
@@ -60,25 +79,51 @@ spec:
       - name: fluent-bit
         image: public.ecr.aws/aws-observability/aws-for-fluent-bit:latest
 
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+
+        env:
+        - name: AWS_REGION
+          value: us-east-1
+
         command: ["/fluent-bit/bin/fluent-bit"]
         args:
           - -c
-          - /fluent-bit/etc/custom.conf
+          - /fluent-bit/etc/fluent-bit.conf
+          - -R
+          - /fluent-bit/etc/parsers.conf
 
         volumeMounts:
         - name: config
-          mountPath: /fluent-bit/etc/custom.conf
-          subPath: fluent-bit.conf
+          mountPath: /fluent-bit/etc/
+
+        - name: varlog
+          mountPath: /var/log
 
         - name: varlibdockercontainers
           mountPath: /var/lib/docker/containers
           readOnly: true
+
+        - name: storage
+          mountPath: /var/log/flb-storage
 
       volumes:
       - name: config
         configMap:
           name: fluent-bit-config
 
+      - name: varlog
+        hostPath:
+          path: /var/log
+
       - name: varlibdockercontainers
         hostPath:
           path: /var/lib/docker/containers
+
+      - name: storage
+        hostPath:
+          path: /var/log/fluent-bit
