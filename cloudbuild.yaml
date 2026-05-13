@@ -1,0 +1,32 @@
+steps:
+  # Step 1: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-south1-docker.pkg.dev/fit-land-496205-a5/react-repo/react-app:$BUILD_ID'
+      - './app'
+
+  # Step 2: Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push'
+    args:
+      - 'push'
+      - 'asia-south1-docker.pkg.dev/fit-land-496205-a5/react-repo/react-app:$BUILD_ID'
+
+  # Step 3: Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'react-app'
+      - '--image=asia-south1-docker.pkg.dev/fit-land-496205-a5/react-repo/react-app:$BUILD_ID'
+      - '--region=asia-south1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=3000'
+
+images:
+  - 'asia-south1-docker.pkg.dev/fit-land-496205-a5/react-repo/react-app:$BUILD_ID'
