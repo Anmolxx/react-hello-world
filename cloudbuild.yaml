@@ -30,3 +30,6 @@ steps:
 
 images:
   - 'asia-south1-docker.pkg.dev/fit-land-496205-a5/react-repo/react-app:$BUILD_ID'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
